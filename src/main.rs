@@ -111,6 +111,8 @@ impl Account {
   }
 }
 
+fn main() {}
+
 #[cfg(test)]
 
 mod tests {
@@ -119,6 +121,7 @@ mod tests {
   fn should_get_current_time() {
     let now1: u64 = unix_timestamp();
     assert!(now1 > 10000);
+    main();
   }
 
   #[test]

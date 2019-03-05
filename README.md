@@ -1,9 +1,9 @@
 # Account Library For CryptoNote Based Crypto Currencies
 
 
-[![](https://travis-ci.com/cryptonote/account.svg?branch=master)](https://travis-ci.com/cryptonote/account)
+[![](https://travis-ci.com/cryptonote-rust/account.svg?branch=master)](https://travis-ci.com/cryptonote-rust/account)
 [![](https://img.shields.io/crates/v/cryptonote-account.svg)](https://crates.io/crates/cryptonote-account)
-[![codecov](https://codecov.io/gh/cryptonote/account/branch/master/graph/badge.svg)](https://codecov.io/gh/cryptonote/account)
+[![codecov](https://codecov.io/gh/cryptonote-rust/account/branch/master/graph/badge.svg)](https://codecov.io/gh/cryptonote-rust/account)
 
 
 
