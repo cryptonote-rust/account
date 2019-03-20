@@ -3,13 +3,15 @@ name = "cryptonote-account"
 version = "0.1.1"
 authors = ["calidion <calidion@gmail.com>"]
 edition = "2018"
+license = "GPL-3.0-or-later"
+description = "account for cryptonote"
 
 [dependencies]
 rand = "0.6"
 chrono = "0.4"
 leb128 = "0.2.1"
 tiny-keccak = "1.4.2"
-rust-base58 = "*"
+rust-base58 = "0.0.4"
 
 
 [dependencies.ed25519-dalek]

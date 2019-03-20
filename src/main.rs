@@ -88,7 +88,6 @@ impl fmt::Display for Address {
     )
   }
 }
-
 impl Account {
   pub fn get_address(&self) -> &String {
     return self.address.get();
