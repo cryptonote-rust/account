@@ -1,9 +1,11 @@
-#![allow(non_snake_case)]
+use std::fmt;
+use std::rc::Rc;
+
 use chrono::Utc;
 
 use ed25519_dalek::Keypair;
 use ed25519_dalek::PublicKey;
-use ed25519_dalek::SecretKey;
+// use ed25519_dalek::SecretKey;
 // use ed25519_dalek::Signature;
 use rand::rngs::OsRng;
 // use rand::Rng;
@@ -13,20 +15,14 @@ use rust_base58::ToBase58;
 use tiny_keccak::keccak256;
 
 pub struct Address {
+  prefix: u64,
+  data: Rc<String>,
   spend: PublicKey,
   view: PublicKey,
 }
 
-pub struct Keys {
-  address: Address,
-  spend: SecretKey,
-  view: SecretKey,
-}
-
 pub struct Account {
-  address: String,
-  keys: Keys,
-  prefix: u64,
+  address: Address,
   timestamp: u64,
 }
 
@@ -35,43 +31,36 @@ pub fn unix_timestamp() -> u64 {
 }
 
 impl Address {
-  fn new(spend: PublicKey, view: PublicKey) -> Address {
+  pub fn new(prefix: u64, spend: PublicKey, view: PublicKey) -> Address {
     Address {
-      spend: spend,
-      view: view,
+      prefix,
+      spend,
+      view,
+      data: Rc::new(Address::to(prefix, spend, view)),
     }
   }
-}
-
-impl Keys {
-  fn new(address: Address, spend: SecretKey, view: SecretKey) -> Keys {
-    Keys {
-      address: address,
-      spend: spend,
-      view: view,
-    }
+  pub fn get(&self) -> &String {
+    &*self.data
   }
-}
-
-impl Address {
-  fn generate(&self, prefix: u64) -> String {
+  fn to(prefix: u64, spend: PublicKey, view: PublicKey) -> String {
     let mut tag = vec![];
     leb128::write::unsigned(&mut tag, prefix).expect("Fail to write data to vector!");
-    let spendArray: Vec<u8> = self.spend.to_bytes().to_vec();
-    let viewArray: Vec<u8> = self.view.to_bytes().to_vec();
+    let spend_array: Vec<u8> = spend.to_bytes().to_vec();
+    let view_array: Vec<u8> = view.to_bytes().to_vec();
     let temp = tag.as_slice();
-    let given = [&temp, spendArray.as_slice(), viewArray.as_slice()].concat();
+    let given = [&temp, spend_array.as_slice(), view_array.as_slice()].concat();
     let checksum = &keccak256(given.as_slice())[..4];
     let temp2 = tag.as_slice();
-    let preBase58 = [
+    let pre_base58 = [
       &temp2,
-      spendArray.as_slice(),
-      viewArray.as_slice(),
+      spend_array.as_slice(),
+      view_array.as_slice(),
       checksum,
-    ].concat();
+    ]
+    .concat();
 
     let mut base58 = String::new();
-    for chunk in preBase58.as_slice().chunks(8) {
+    for chunk in pre_base58.as_slice().chunks(8) {
       let mut part = chunk.to_base58();
       let exp_len = match chunk.len() {
         8 => 11,
@@ -89,23 +78,29 @@ impl Address {
   }
 }
 
-impl Account {
-  fn getAddress(&self) -> String {
-    return self.address.clone();
+impl fmt::Display for Address {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    write!(
+      f,
+      "spend key: {:x?}, view key: {:x?}",
+      self.spend.to_bytes(),
+      self.view.to_bytes()
+    )
   }
-  fn new(prefix: u64) -> Account {
-    let mut spendRng: OsRng = OsRng::new().unwrap();
-    let mut viewRng: OsRng = OsRng::new().unwrap();
-    let spendKeypair: Keypair = Keypair::generate(&mut spendRng);
-    let viewKeypair: Keypair = Keypair::generate(&mut viewRng);
-    let address: Address = Address::new(spendKeypair.public, viewKeypair.public);
-    let addressString = address.generate(prefix);
-    let keys: Keys = Keys::new(address, spendKeypair.secret, viewKeypair.secret);
+}
 
+impl Account {
+  pub fn get_address(&self) -> &String {
+    return self.address.get();
+  }
+  pub fn new(prefix: u64) -> Account {
+    let mut spend_rng: OsRng = OsRng::new().unwrap();
+    let mut view_rng: OsRng = OsRng::new().unwrap();
+    let spend_key_pair: Keypair = Keypair::generate(&mut spend_rng);
+    let view_key_pair: Keypair = Keypair::generate(&mut view_rng);
+    let address: Address = Address::new(prefix, spend_key_pair.public, view_key_pair.public);
     Account {
-      prefix: prefix,
-      keys: keys,
-      address: addressString,
+      address,
       timestamp: unix_timestamp(),
     }
   }
@@ -130,9 +125,14 @@ mod tests {
     let acc: Account = Account::new(prefix);
     let now1: u64 = unix_timestamp();
 
-    assert!(acc.prefix == prefix);
+    assert!(acc.address.prefix == prefix);
     assert!(acc.timestamp - now1 < 10);
-    println!("{:x?}", acc.keys.spend);
-    println!("{:?}", acc.getAddress());
+    println!("{:?}", acc.get_address());
+    println!("{:?}", acc.get_address());
+    println!("{}", acc.address);
+    println!("{:x?}", acc.address.spend.to_bytes());
+    println!("{:x?}", acc.address.spend.to_bytes());
+    println!("{:x?}", acc.address.view.to_bytes());
+    println!("{:x?}", acc.address.view.to_bytes());
   }
 }

@@ -14,9 +14,9 @@
     let acc: Account = Account::new(prefix);
 
     // Get Keys
-    let spendKey = acc.keys.spend;
-    let viewKey = acc.keys.view;
+    let spendKey = acc.address.spend;
+    let viewKey = acc.address.view;
 
     // Get Address
-    let address = acc.getAddress();
+    let address = acc.get_address();
 ```
