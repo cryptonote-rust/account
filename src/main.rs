@@ -11,7 +11,7 @@ use rand::rngs::OsRng;
 // use rand::Rng;
 
 use leb128;
-use rust_base58::ToBase58;
+use cryptonote_base58::{to_base58, from_base58};
 use tiny_keccak::keccak256;
 
 pub struct Address {
@@ -42,9 +42,33 @@ impl Address {
   pub fn get(&self) -> &String {
     &*self.data
   }
+  fn from(prefix: u64, address: &String) -> Address {
+    let addr = address.to_string();
+    let bytes = from_base58(addr);
+    let (given, checksum) = bytes.split_at(bytes.len() - 4);
+    let new_checksum = &keccak256(given)[..4];
+    if (new_checksum != checksum) {
+      panic!("Checksum error: expected: {:x?}, got: {:x?}!", checksum, new_checksum);
+    }
+
+    let (mut new_prefix_bytes, keys) = given.split_at(given.len() - 64);
+    let new_prefix = leb128::read::unsigned(&mut new_prefix_bytes).expect("Fail to read prefix!");
+    if (prefix != new_prefix ) {
+        panic!("Prefix not match: expected: {}, got: {}!", prefix, new_prefix);
+    }
+    let (spend_bytes, view_bytes) = keys.split_at(32);
+    let spend: PublicKey = PublicKey::from_bytes(spend_bytes).unwrap();
+    let view: PublicKey = PublicKey::from_bytes(view_bytes).unwrap();
+    Address{
+      prefix,
+      spend,
+      view,
+      data: Rc::new(address.to_string()),
+    }
+  }
   fn to(prefix: u64, spend: PublicKey, view: PublicKey) -> String {
     let mut tag = vec![];
-    leb128::write::unsigned(&mut tag, prefix).expect("Fail to write data to vector!");
+    leb128::write::unsigned(&mut tag, prefix).expect("Fail to write prefix!");
     let spend_array: Vec<u8> = spend.to_bytes().to_vec();
     let view_array: Vec<u8> = view.to_bytes().to_vec();
     let temp = tag.as_slice();
@@ -58,22 +82,7 @@ impl Address {
       checksum,
     ]
     .concat();
-
-    let mut base58 = String::new();
-    for chunk in pre_base58.as_slice().chunks(8) {
-      let mut part = chunk.to_base58();
-      let exp_len = match chunk.len() {
-        8 => 11,
-        6 => 9,
-        5 => 7,
-        _ => panic!("Invalid chunk length: {}", chunk.len()),
-      };
-      let missing = exp_len - part.len();
-      if missing > 0 {
-        part.insert_str(0, &"11111111111"[..missing]);
-      }
-      base58.push_str(&part);
-    }
+    let base58 = to_base58(pre_base58);
     base58
   }
 }
@@ -82,7 +91,7 @@ impl fmt::Display for Address {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     write!(
       f,
-      "spend key: {:x?}, view key: {:x?}",
+      "\nAdderess: \n  spend key: {:x?},\n  view key: {:x?}",
       self.spend.to_bytes(),
       self.view.to_bytes()
     )
@@ -126,12 +135,11 @@ mod tests {
 
     assert!(acc.address.prefix == prefix);
     assert!(acc.timestamp - now1 < 10);
-    println!("{:?}", acc.get_address());
-    println!("{:?}", acc.get_address());
-    println!("{}", acc.address);
-    println!("{:x?}", acc.address.spend.to_bytes());
-    println!("{:x?}", acc.address.spend.to_bytes());
-    println!("{:x?}", acc.address.view.to_bytes());
-    println!("{:x?}", acc.address.view.to_bytes());
+    println!("{:?}\n", acc.get_address());
+    println!("{:?}\n", acc.get_address());
+    Address::from(prefix, acc.get_address());
+    println!("{}\n", acc.address);
+    println!("spend: \n {:x?}\n", acc.address.spend.to_bytes());
+    println!("view: \n {:x?}\n", acc.address.view.to_bytes());
   }
 }

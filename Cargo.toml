@@ -11,8 +11,7 @@ rand = "0.6"
 chrono = "0.4"
 leb128 = "0.2.1"
 tiny-keccak = "1.4.2"
-rust-base58 = "0.0.4"
-
+cryptonote-base58 = "0.1.0"
 
 [dependencies.ed25519-dalek]
 version = "1.0.0-pre.1"
