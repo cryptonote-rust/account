@@ -10,8 +10,8 @@ use ed25519_dalek::PublicKey;
 use rand::rngs::OsRng;
 // use rand::Rng;
 
+use cryptonote_base58::{from_base58, to_base58};
 use leb128;
-use cryptonote_base58::{to_base58, from_base58};
 use tiny_keccak::keccak256;
 
 pub struct Address {
@@ -22,6 +22,8 @@ pub struct Address {
 }
 
 pub struct Account {
+  spend: Keypair,
+  view: Keypair,
   address: Address,
   timestamp: u64,
 }
@@ -47,19 +49,25 @@ impl Address {
     let bytes = from_base58(addr);
     let (given, checksum) = bytes.split_at(bytes.len() - 4);
     let new_checksum = &keccak256(given)[..4];
-    if (new_checksum != checksum) {
-      panic!("Checksum error: expected: {:x?}, got: {:x?}!", checksum, new_checksum);
+    if new_checksum != checksum {
+      panic!(
+        "Checksum error: expected: {:x?}, got: {:x?}!",
+        checksum, new_checksum
+      );
     }
 
     let (mut new_prefix_bytes, keys) = given.split_at(given.len() - 64);
     let new_prefix = leb128::read::unsigned(&mut new_prefix_bytes).expect("Fail to read prefix!");
-    if (prefix != new_prefix ) {
-        panic!("Prefix not match: expected: {}, got: {}!", prefix, new_prefix);
+    if prefix != new_prefix {
+      panic!(
+        "Prefix not match: expected: {}, got: {}!",
+        prefix, new_prefix
+      );
     }
     let (spend_bytes, view_bytes) = keys.split_at(32);
     let spend: PublicKey = PublicKey::from_bytes(spend_bytes).unwrap();
     let view: PublicKey = PublicKey::from_bytes(view_bytes).unwrap();
-    Address{
+    Address {
       prefix,
       spend,
       view,
@@ -101,14 +109,17 @@ impl Account {
   pub fn get_address(&self) -> &String {
     return self.address.get();
   }
+
   pub fn new(prefix: u64) -> Account {
     let mut spend_rng: OsRng = OsRng::new().unwrap();
     let mut view_rng: OsRng = OsRng::new().unwrap();
-    let spend_key_pair: Keypair = Keypair::generate(&mut spend_rng);
-    let view_key_pair: Keypair = Keypair::generate(&mut view_rng);
-    let address: Address = Address::new(prefix, spend_key_pair.public, view_key_pair.public);
+    let spend: Keypair = Keypair::generate(&mut spend_rng);
+    let view: Keypair = Keypair::generate(&mut view_rng);
+    let address: Address = Address::new(prefix, spend.public, view.public);
     Account {
       address,
+      spend,
+      view,
       timestamp: unix_timestamp(),
     }
   }
@@ -142,9 +153,9 @@ mod tests {
     println!("spend: \n {:x?}\n", acc.address.spend.to_bytes());
     println!("view: \n {:x?}\n", acc.address.view.to_bytes());
   }
-  
+
   #[test]
-    fn should_create_account1() {
+  fn should_create_account1() {
     let prefix = 0x3d23;
     let acc: Account = Account::new(prefix);
     let now1: u64 = unix_timestamp();
