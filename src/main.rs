@@ -142,4 +142,20 @@ mod tests {
     println!("spend: \n {:x?}\n", acc.address.spend.to_bytes());
     println!("view: \n {:x?}\n", acc.address.view.to_bytes());
   }
+  
+  #[test]
+    fn should_create_account1() {
+    let prefix = 0x3d23;
+    let acc: Account = Account::new(prefix);
+    let now1: u64 = unix_timestamp();
+
+    assert!(acc.address.prefix == prefix);
+    assert!(acc.timestamp - now1 < 10);
+    println!("{:?}\n", acc.get_address());
+    println!("{:?}\n", acc.get_address());
+    Address::from(prefix, acc.get_address());
+    println!("{}\n", acc.address);
+    println!("spend: \n {:x?}\n", acc.address.spend.to_bytes());
+    println!("view: \n {:x?}\n", acc.address.view.to_bytes());
+  }
 }
