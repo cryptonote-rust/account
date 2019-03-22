@@ -44,7 +44,7 @@ impl Address {
   pub fn get_prefix(&self) -> u64 {
     self.prefix
   }
-  fn from(prefix: u64, address: &String) -> Address {
+  pub fn from(prefix: u64, address: &String) -> Address {
     let addr = address.to_string();
     let bytes = from_base58(addr).expect("Fail to decode base58!");
     let (given, checksum) = bytes.split_at(bytes.len() - 4);
@@ -74,7 +74,7 @@ impl Address {
       data: Rc::new(address.to_string()),
     }
   }
-  fn to(prefix: u64, spend: PublicKey, view: PublicKey) -> String {
+  pub fn to(prefix: u64, spend: PublicKey, view: PublicKey) -> String {
     let mut tag = vec![];
     leb128::write::unsigned(&mut tag, prefix).expect("Fail to write prefix!");
     let spend_array: Vec<u8> = spend.to_bytes().to_vec();
@@ -125,8 +125,6 @@ impl Account {
   }
 }
 
-fn main() {}
-
 #[cfg(test)]
 
 mod tests {
@@ -135,7 +133,6 @@ mod tests {
   fn should_get_current_time() {
     let now1: u64 = unix_timestamp();
     assert!(now1 > 10000);
-    main();
   }
 
   #[test]
