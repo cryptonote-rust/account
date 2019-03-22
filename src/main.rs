@@ -5,10 +5,7 @@ use chrono::Utc;
 
 use ed25519_dalek::Keypair;
 use ed25519_dalek::PublicKey;
-// use ed25519_dalek::SecretKey;
-// use ed25519_dalek::Signature;
 use rand::rngs::OsRng;
-// use rand::Rng;
 
 use cryptonote_base58::{from_base58, to_base58};
 use leb128;
@@ -44,9 +41,12 @@ impl Address {
   pub fn get(&self) -> &String {
     &*self.data
   }
+  pub fn get_prefix(&self) -> u64 {
+    self.prefix
+  }
   fn from(prefix: u64, address: &String) -> Address {
     let addr = address.to_string();
-    let bytes = from_base58(addr);
+    let bytes = from_base58(addr).expect("Fail to decode base58!");
     let (given, checksum) = bytes.split_at(bytes.len() - 4);
     let new_checksum = &keccak256(given)[..4];
     if new_checksum != checksum {
@@ -90,7 +90,7 @@ impl Address {
       checksum,
     ]
     .concat();
-    let base58 = to_base58(pre_base58);
+    let base58 = to_base58(pre_base58).expect("Fail to encode base58!");
     base58
   }
 }
@@ -145,6 +145,7 @@ mod tests {
     let now1: u64 = unix_timestamp();
 
     assert!(acc.address.prefix == prefix);
+    assert!(acc.address.get_prefix() == prefix);
     assert!(acc.timestamp - now1 < 10);
     println!("{:?}\n", acc.get_address());
     println!("{:?}\n", acc.get_address());
@@ -161,6 +162,7 @@ mod tests {
     let now1: u64 = unix_timestamp();
 
     assert!(acc.address.prefix == prefix);
+    assert!(acc.address.get_prefix() == prefix);
     assert!(acc.timestamp - now1 < 10);
     println!("{:?}\n", acc.get_address());
     println!("{:?}\n", acc.get_address());
